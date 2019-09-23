@@ -1,4 +1,4 @@
-# first-floor
+# b1-9x9
 
 ## Project setup
 ```

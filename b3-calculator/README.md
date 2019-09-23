@@ -1,4 +1,4 @@
-# floor2
+# b3-calculator
 
 ## Project setup
 ```
