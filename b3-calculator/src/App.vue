@@ -2,22 +2,24 @@
     <div id="app" class="container">
         <div class="row displayboard">
             <div class="col">
-                <span>{{temp}}</span>
+                <span>{{displayExp(exp)}}</span>
                 <br />
-                <span>{{currentNum}}</span>
+                <span v-if="result">{{result}}</span>
+                <span v-else-if="temp && currentNum === '0'">{{temp}}</span>
+                <span v-else>{{currentNum}}</span>
             </div>
         </div>
         <div class="row">
             <button class="col" @click="appendNum('7')">7</button>
             <button class="col" @click="appendNum('8')">8</button>
             <button class="col" @click="appendNum('9')">9</button>
-            <button class="col operations" @click="calc('÷')">÷</button>
+            <button class="col operations" @click="calc('/')">÷</button>
         </div>
         <div class="row">
             <button class="col" @click="appendNum('4')">4</button>
             <button class="col" @click="appendNum('5')">5</button>
             <button class="col" @click="appendNum('6')">6</button>
-            <button class="col operations" @click="calc('x')">x</button>
+            <button class="col operations" @click="calc('*')">x</button>
         </div>
         <div class="row">
             <button class="col" @click="appendNum('1')">1</button>
@@ -36,7 +38,7 @@
                 <button class="ac" @click="erase('ac')">AC</button>
                 <button class="del" @click="erase">⌫</button>
             </div>
-            <button class="col operations equ" @click="calc('=')">=</button>
+            <button class="col operations equ" @click="equal('=')">=</button>
         </div>
     </div>
 </template>
@@ -47,11 +49,14 @@ export default {
     data() {
         return {
             currentNum: '0',
+            exp: '',
             temp: '',
+            result: 0,
         }
     },
     methods: {
         appendNum(num) {
+            this.result = 0;
             if (this.currentNum === '0' && (num === '0' || num === '00')) {
                 this.currentNum = '0';
                 return;
@@ -66,34 +71,48 @@ export default {
         },
         erase(type) {
             if (type === 'ac') {
+                this.result = 0;
                 this.currentNum = '0';
+                this.exp = '';
                 this.temp = '';
             }
             else {
-                this.currentNum = this.currentNum.length > 1 ? this.currentNum.slice(0, this.currentNum.length - 1) : '0';
+                if (this.result) {
+                    this.currentNum = this.result.toString();
+                    this.result = 0;
+                }
+                
+                if (this.currentNum === '0' && this.temp === '') return;
+                
+                if (this.currentNum === '0') {
+                    this.temp = this.temp.length > 1 ? this.temp.slice(0, this.temp.length - 1) : '0';
+                }
+                else {
+                    this.currentNum = this.currentNum.length > 1 ? this.currentNum.slice(0, this.currentNum.length - 1) : '0';
+                    this.temp = '';
+                }
             }
         },
         calc(symbol) {
-            switch (symbol) {
-                case '÷':
-                    console.log('÷');
-                    break;
-                case 'x':
-                    console.log('x');
-                    break;
-                case '+':
-                    console.log('+');
-                    break;
-                case '-':
-                    console.log('-');
-                    break;
-                case '=':
-                    console.log('=');
-                    break;
-                default:
-                    break;
+            if (this.result) {
+                this.exp += this.result + symbol;
             }
-            this.temp = this.currentNum + symbol;
+
+            if (this.currentNum === '0') return;
+
+            this.exp += this.currentNum + symbol;
+            this.temp = this.currentNum;
+            this.currentNum = '0';
+        },
+        equal() {
+            if (this.result) return;
+            this.result = eval(this.exp + this.currentNum);
+            this.currentNum = '0';
+            this.temp = '';
+            this.exp = '';
+        },
+        displayExp(exp) {
+            return exp.replace(/\//g, '÷').replace(/\*/g, 'x');
         }
     },
 }
