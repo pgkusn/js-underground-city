@@ -36,7 +36,7 @@
         <div class="row">
             <div class="col erase">
                 <button class="ac" @click="erase('ac')">AC</button>
-                <button class="del" @click="erase">⌫</button>
+                <button class="del" @click="erase('del')">⌫</button>
             </div>
             <button class="col operations equ" @click="equal('=')">=</button>
         </div>
@@ -56,41 +56,51 @@ export default {
     },
     methods: {
         appendNum(num) {
-            this.result = 0;
+            if (this.currentNum.length >= 13) return;
+
+            if (this.result) this.result = 0;
+
             if (this.currentNum === '0' && (num === '0' || num === '00')) {
                 this.currentNum = '0';
                 return;
             }
+
             if (num === '.') {
                 if (/\./.test(this.currentNum)) return;
             }
+
             if (this.currentNum === '0' && num !== '.') {
                 this.currentNum = '';
             }
+
             this.currentNum += num;
         },
         erase(type) {
-            if (type === 'ac') {
-                this.result = 0;
-                this.currentNum = '0';
-                this.exp = '';
-                this.temp = '';
-            }
-            else {
-                if (this.result) {
-                    this.currentNum = this.result.toString();
+            switch (type) {
+                case 'ac':
                     this.result = 0;
-                }
-                
-                if (this.currentNum === '0' && this.temp === '') return;
-                
-                if (this.currentNum === '0') {
-                    this.temp = this.temp.length > 1 ? this.temp.slice(0, this.temp.length - 1) : '0';
-                }
-                else {
-                    this.currentNum = this.currentNum.length > 1 ? this.currentNum.slice(0, this.currentNum.length - 1) : '0';
+                    this.currentNum = '0';
+                    this.exp = '';
                     this.temp = '';
-                }
+                    break;
+                case 'del':
+                    if (this.result) {
+                        this.currentNum = this.result.toString();
+                        this.result = 0;
+                    }
+
+                    if (this.currentNum === '0' && this.temp === '') return;
+
+                    if (this.currentNum === '0') {
+                        this.temp = this.temp.length > 1 ? this.temp.slice(0, this.temp.length - 1) : '0';
+                    }
+                    else {
+                        this.currentNum = this.currentNum.length > 1 ? this.currentNum.slice(0, this.currentNum.length - 1) : '0';
+                        this.temp = '';
+                    }
+                    break;
+                default:
+                    break;
             }
         },
         calc(symbol) {
@@ -106,13 +116,17 @@ export default {
         },
         equal() {
             if (this.result) return;
-            this.result = eval(this.exp + this.currentNum);
-            this.currentNum = '0';
-            this.temp = '';
+            this.result = this.looseJsonParse(this.exp + this.currentNum);
             this.exp = '';
+            this.temp = '';
+            this.currentNum = '0';
+            // TODO:超過最大位數顯示處理
         },
         displayExp(exp) {
             return exp.replace(/\//g, '÷').replace(/\*/g, 'x');
+        },
+        looseJsonParse(obj) { // 取代eval()
+            return Function('"use strict";return (' + obj + ')')();
         }
     },
 }
