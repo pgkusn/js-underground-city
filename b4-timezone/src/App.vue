@@ -78,6 +78,7 @@ export default {
             return d.toLocaleString('en-GB', options);
         },
         timer() {
+            // 時區參考：https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
             this.tw_date = this.getLocaleString('Asia/Taipei', 'date');
             this.tw_time = this.getLocaleString('Asia/Taipei', 'time');
             this.ny_date = this.getLocaleString('America/New_York', 'date');
@@ -88,6 +89,7 @@ export default {
             this.bkk_time = this.getLocaleString('Asia/Bangkok', 'time');
             this.syd_date = this.getLocaleString('Australia/Sydney', 'date');
             this.syd_time = this.getLocaleString('Australia/Sydney', 'time');
+
             requestAnimationFrame(this.timer);
         }
     },
