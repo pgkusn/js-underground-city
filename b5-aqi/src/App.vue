@@ -134,6 +134,7 @@ export default {
     },
     methods: {
         fetchData() {
+            // 資料來源：https://opendata.epa.gov.tw/Data/Contents/AQI
             return fetch('https://opendata.epa.gov.tw/api/v1/AQI?$format=json').then(res => res.json());
             // return fetch('db.json').then(res => res.json()); // dev data
         },
