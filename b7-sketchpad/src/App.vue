@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <div class="cv__wrap">
+        <div class="cv__wrap" :class="{ 'is-collapse': isPanelCollapse }">
             <canvas
                 id="canvas"
                 width="0"
@@ -9,27 +9,37 @@
                 @mousemove="onMouseMove"
                 @mousedown="onMouseDown"
                 @mouseup="onMouseUp"
+                @mouseenter="onMouseEnter"
+                @mouseleave="onMouseLeave"
             ></canvas>
-            <div class="cursur__pointer"></div>
+            <div class="cursor__pointer" :style="cursorStyle"></div>
             <div class="top__panel__wrap">
-                <a class="action" download="myCanvas.png">
+                <a class="action" :href="base64" download="myCanvas.png">
                     <i class="fas fa-save"></i>
                     <p class="text">SAVE</p>
                 </a>
-                <div class="action">
+                <div class="action" @click="clearAll(true)">
                     <i class="far fa-trash-alt"></i>
                     <p class="text">CLEAR ALL</p>
                 </div>
-                <label class="action" for="file">
+                <!-- <label class="action" for="file">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <p class="text">UPLOAD IMAGE</p>
                     <input type="file" id="file" hidden accept="image/jpeg, image/png" />
-                </label>
-                <div class="action">
+                </label>-->
+                <div
+                    class="action"
+                    :class="{ 'is-disable': currentHistory === 0 }"
+                    @click="setHistory(-1)"
+                >
                     <i class="fas fa-chevron-left"></i>
                     <p class="text">UNDO</p>
                 </div>
-                <div class="action">
+                <div
+                    class="action"
+                    :class="{ 'is-disable': currentHistory === historyImgs.length - 1 }"
+                    @click="setHistory(1)"
+                >
                     <i class="fas fa-chevron-right"></i>
                     <p class="text">REDO</p>
                 </div>
@@ -41,33 +51,33 @@
                         <li>Brighter</li>
                     </ul>
                 </div>-->
-                <div class="top__panel__bar">
+                <div class="top__panel__bar" @click="isPanelCollapse = !isPanelCollapse">
                     <i class="fas fa-chevron-up"></i>
                 </div>
             </div>
             <div class="bot__panel__wrap">
                 <div class="action">
-                    <i class="fas fa-pen"></i>
+                    <i class="fas fa-pen" @click="isEraser=false"></i>
                 </div>
                 <div class="action">
-                    <i class="fas fa-eraser"></i>
+                    <i class="fas fa-eraser" @click="isEraser=true"></i>
                 </div>
                 <div class="action">
                     <div class="label">SIZE:</div>
-                    <input type="text" />px
+                    <input type="text" v-model="lineWidth" />px
                 </div>
                 <div class="action">
                     <div class="label">COLOR:</div>
                     <div class="color__options">
-                        <span class="option"></span>
-                        <span class="option"></span>
-                        <span class="option"></span>
-                        <span class="option"></span>
-                        <span class="option"></span>
-                        <input type="color" class="option" />
+                        <span class="option" @click="setStrokeStyle('#fff')"></span>
+                        <span class="option" @click="setStrokeStyle('#000')"></span>
+                        <span class="option" @click="setStrokeStyle('#9bffcd')"></span>
+                        <span class="option" @click="setStrokeStyle('#00cc99')"></span>
+                        <span class="option" @click="setStrokeStyle('#01936f')"></span>
+                        <input type="color" class="option" @change="setStrokeStyle" />
                     </div>
                 </div>
-                <div class="bot__panel__bar">
+                <div class="bot__panel__bar" @click="isPanelCollapse = !isPanelCollapse">
                     <i class="fas fa-chevron-down"></i>
                 </div>
             </div>
@@ -76,21 +86,54 @@
 </template>
 
 <script>
+import _ from 'lodash';
 export default {
     name: 'app',
     data() {
         return {
+            canvas: null,
             ctx: null,
-            isMouseDown: false,
             lineWidth: 10,
-            strokeStyle: '#faa',
+            strokeStyle: '#000',
+            lastStrokeStyle: null,
+            isMouseDown: false,
+            isEraser: false,
+            isPanelCollapse: false,
             oldX: 0,
             oldY: 0,
+            base64: null,
+            historyImgs: [''],
+            currentHistory: 0,
+            cursorStyle: {
+                top: '0px',
+                left: '0px',
+                width: '10px',
+                height: '10px',
+                backgroundColor: '#000',
+                opacity: 1
+            }
+        }
+    },
+    watch: {
+        lineWidth(val) {
+            [this.cursorStyle.width, this.cursorStyle.height] = [`${val}px`, `${val}px`];
+        },
+        strokeStyle(val) {
+            this.$set(this.cursorStyle, 'backgroundColor', val)
+        },
+        isEraser(val) {
+            if (val) {
+                this.lastStrokeStyle = this.strokeStyle;
+                this.strokeStyle = '#e5e5e5';
+            }
+            else {
+                this.strokeStyle = this.lastStrokeStyle;
+            }
         }
     },
     methods: {
         init() {
-            const canvas = this.$refs.canvas;
+            this.canvas = this.$refs.canvas;
 
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -104,14 +147,33 @@ export default {
             if (this.isMouseDown) {
                 this.draw();
             }
+            // set cursor position
+            let x = event.offsetX - this.lineWidth / 2;
+            let y = event.offsetY - this.lineWidth / 2;
+            [this.cursorStyle.left, this.cursorStyle.top] = [`${x}px`, `${y}px`];
         },
         onMouseDown() {
             this.isMouseDown = true;
-            this.oldX = event.offsetX;
-            this.oldY = event.offsetY;
+            [this.oldX, this.oldY] = [event.offsetX, event.offsetY];
         },
         onMouseUp() {
             this.isMouseDown = false;
+            // append history
+            this.currentHistory++;
+            this.base64 = canvas.toDataURL();
+            if (this.currentHistory === this.historyImgs.length) {
+                this.historyImgs.push(this.base64);
+            }
+            else {
+                this.$set(this.historyImgs, this.currentHistory, this.base64);
+            }
+        },
+        onMouseEnter() {
+            this.$set(this.cursorStyle, 'opacity', 1);
+        },
+        onMouseLeave() {
+            this.isMouseDown = false;
+            this.$set(this.cursorStyle, 'opacity', 0);
         },
         draw() {
             this.ctx.lineWidth = this.lineWidth;
@@ -122,12 +184,47 @@ export default {
             this.ctx.lineTo(event.offsetX, event.offsetY);
             this.ctx.stroke();
 
-            this.oldX = event.offsetX;
-            this.oldY = event.offsetY;
-        }
+            [this.oldX, this.oldY] = [event.offsetX, event.offsetY];
+        },
+        setStrokeStyle(color) {
+            this.strokeStyle = event.target.value || color;
+        },
+        clearAll(clearHistory) {
+            if (clearHistory) {
+                this.historyImgs.length = 0;
+                this.historyImgs.push('');
+                this.currentHistory = 0;
+            }
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        },
+        setHistory(step) {
+            let newStep = this.currentHistory + step;
+            if (newStep >= 0 && newStep < this.historyImgs.length) {
+                this.currentHistory += step;
+                if (this.currentHistory === 0) {
+                    this.clearAll();
+                }
+                else {
+                    this.drawImage();
+                }
+            }
+        },
+        drawImage() {
+            let img = new Image();
+            img.onload = () => {
+                this.clearAll();
+                this.ctx.drawImage(img, 0, 0);
+            };
+            img.src = this.historyImgs[this.currentHistory];
+        },
+        resizeHandler: _.debounce(function () {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+        }, 100)
     },
     mounted() {
         this.init();
+        window.addEventListener('resize', this.resizeHandler);
     },
 }
 </script>
@@ -169,7 +266,7 @@ export default {
         top: 0;
         left: 0;
     }
-    .cursur__pointer {
+    .cursor__pointer {
         position: absolute;
         border-radius: 50%;
         pointer-events: none;
@@ -317,6 +414,7 @@ export default {
                         width: 48px;
                         height: 48px;
                         border-radius: 50%;
+                        cursor: pointer;
                         & + .option {
                             margin-left: 8px;
                         }
@@ -364,5 +462,9 @@ export default {
             }
         }
     }
+}
+.fa-pen,
+.fa-eraser {
+    cursor: pointer;
 }
 </style>
