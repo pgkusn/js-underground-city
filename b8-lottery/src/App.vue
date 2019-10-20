@@ -81,8 +81,8 @@ export default {
         },
         getRandomPrize() {
             let prizeIdx = _.random(0, this.leftPrizes.length - 1);
-            let prize = this.leftPrizes[prizeIdx];
-            this.prizeIdx = this.prizes.indexOf(prize);
+            let prizeName = this.leftPrizes[prizeIdx].name;
+            this.prizeIdx = this.prizes.findIndex(val => val.name === prizeName);
         },
         setPointerDeg() {
             let deg = 360 * 6 + this.prizeIdx * 60;
