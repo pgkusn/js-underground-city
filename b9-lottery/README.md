@@ -1,4 +1,4 @@
-# b8-lottery
+# b9-lottery
 
 ## Project setup
 ```
